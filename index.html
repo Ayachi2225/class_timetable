@@ -502,7 +502,7 @@
       ]}
     ];
 
-    const weekdays = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
+    const weekdays = ["月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日", "日曜日"];
     const semesterStart = new Date(2026, 7, 31);
     const today = new Date();
     today.setHours(12, 0, 0, 0);
@@ -633,7 +633,7 @@
         tab.className = `day-tab${day === selectedDay ? " active" : ""}${isToday ? " is-today" : ""}`;
         tab.setAttribute("role", "tab");
         tab.setAttribute("aria-selected", day === selectedDay);
-        tab.innerHTML = `<span>${weekdays[day - 1].slice(1)}</span><strong>${date.getMonth() + 1}/${date.getDate()}</strong>`;
+        tab.innerHTML = `<span>${weekdays[day - 1]}</span><strong>${date.getMonth() + 1}/${date.getDate()}</strong>`;
         tab.addEventListener("click", () => { selectedDay = day; renderMobile(); });
         dayTabs.append(tab);
       }
