@@ -1,0 +1,675 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#101933">
+  <title>我的课表</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #f7f9ff;
+      --muted: #b8c2df;
+      --line: rgba(255, 255, 255, .13);
+      --panel: rgba(12, 20, 48, .72);
+      --panel-strong: rgba(14, 23, 54, .92);
+      --accent: #9ebcff;
+      --cell-height: 50px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { min-height: 100%; }
+
+    body {
+      margin: 0;
+      min-width: 320px;
+      min-height: 100vh;
+      min-height: 100dvh;
+      color: var(--ink);
+      font-family: Inter, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+      background: #101933 url("background.png") center / cover fixed no-repeat;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      background: linear-gradient(135deg, rgba(5, 10, 28, .46), rgba(12, 20, 48, .68));
+    }
+
+    button { font: inherit; }
+
+    .app {
+      width: min(1440px, 100%);
+      margin: 0 auto;
+      padding: 28px clamp(16px, 3vw, 42px) 36px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 20px;
+    }
+
+    .today-date {
+      margin: 0;
+      font-size: clamp(2rem, 5vw, 3.6rem);
+      font-weight: 760;
+      line-height: 1;
+      letter-spacing: -.06em;
+    }
+
+    .today-meta {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin: 11px 0 0;
+      color: var(--muted);
+      font-size: .96rem;
+    }
+
+    .dot {
+      width: 3px;
+      height: 3px;
+      border-radius: 50%;
+      background: currentColor;
+      opacity: .7;
+    }
+
+    .week-control {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: rgba(13, 22, 52, .6);
+      box-shadow: 0 12px 35px rgba(0, 0, 0, .14);
+      backdrop-filter: blur(14px);
+    }
+
+    .week-control button {
+      display: grid;
+      width: 38px;
+      height: 38px;
+      padding: 0;
+      place-items: center;
+      border: 0;
+      border-radius: 10px;
+      color: var(--ink);
+      background: transparent;
+      cursor: pointer;
+    }
+
+    .week-control button:hover,
+    .week-control button:focus-visible { background: rgba(255, 255, 255, .1); }
+
+    .week-label {
+      min-width: 108px;
+      text-align: center;
+      font-size: .92rem;
+      font-weight: 650;
+    }
+
+    .schedule-shell {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: var(--panel);
+      box-shadow: 0 24px 70px rgba(0, 0, 0, .25);
+      backdrop-filter: blur(18px) saturate(115%);
+    }
+
+    .desktop-schedule {
+      display: grid;
+      grid-template-columns: 74px repeat(7, minmax(115px, 1fr));
+      min-width: 930px;
+    }
+
+    .corner,
+    .day-head {
+      position: sticky;
+      top: 0;
+      z-index: 4;
+      min-height: 67px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(12, 20, 48, .9);
+      backdrop-filter: blur(16px);
+    }
+
+    .day-head {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      border-left: 1px solid var(--line);
+      color: var(--muted);
+      font-size: .82rem;
+    }
+
+    .day-head strong {
+      color: var(--ink);
+      font-size: .92rem;
+      font-weight: 650;
+    }
+
+    .day-head.is-today strong { color: #dce7ff; }
+
+    .day-head.is-today span {
+      display: grid;
+      width: 26px;
+      height: 26px;
+      place-items: center;
+      border-radius: 50%;
+      color: #152043;
+      background: var(--accent);
+      font-weight: 750;
+    }
+
+    .time-column { grid-column: 1; }
+
+    .time-slot {
+      height: var(--cell-height);
+      padding: 7px 8px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, .075);
+      color: var(--muted);
+      text-align: center;
+      font-size: .67rem;
+      line-height: 1.35;
+    }
+
+    .time-slot b {
+      display: block;
+      color: var(--ink);
+      font-size: .75rem;
+      font-weight: 650;
+    }
+
+    .day-column {
+      position: relative;
+      height: calc(13 * var(--cell-height));
+      border-left: 1px solid var(--line);
+      background: repeating-linear-gradient(
+        to bottom,
+        transparent 0,
+        transparent calc(var(--cell-height) - 1px),
+        rgba(255, 255, 255, .075) calc(var(--cell-height) - 1px),
+        rgba(255, 255, 255, .075) var(--cell-height)
+      );
+    }
+
+    .course-card {
+      position: absolute;
+      left: 5px;
+      right: 5px;
+      z-index: 2;
+      overflow: hidden;
+      padding: 8px 9px;
+      border: 1px solid rgba(255, 255, 255, .14);
+      border-radius: 9px;
+      color: #fff;
+      text-align: left;
+      background: var(--course-color);
+      box-shadow: 0 5px 14px rgba(0, 0, 0, .17);
+      cursor: pointer;
+    }
+
+    .course-card:hover,
+    .course-card:focus-visible {
+      z-index: 3;
+      filter: brightness(1.13);
+      outline: 2px solid rgba(255, 255, 255, .62);
+      outline-offset: -2px;
+    }
+
+    .course-card strong {
+      display: -webkit-box;
+      overflow: hidden;
+      font-size: .8rem;
+      font-weight: 680;
+      line-height: 1.3;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+    }
+
+    .course-card small {
+      display: block;
+      margin-top: 5px;
+      overflow: hidden;
+      color: rgba(255, 255, 255, .82);
+      font-size: .69rem;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .mobile-schedule { display: none; }
+
+    dialog {
+      width: min(420px, calc(100% - 32px));
+      padding: 0;
+      border: 1px solid rgba(255, 255, 255, .18);
+      border-radius: 20px;
+      color: var(--ink);
+      background: var(--panel-strong);
+      box-shadow: 0 28px 90px rgba(0, 0, 0, .5);
+      backdrop-filter: blur(22px);
+    }
+
+    dialog::backdrop {
+      background: rgba(3, 7, 20, .66);
+      backdrop-filter: blur(5px);
+    }
+
+    .dialog-body { padding: 24px; }
+
+    .dialog-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+    }
+
+    .dialog-head h2 {
+      margin: 0;
+      font-size: 1.28rem;
+      line-height: 1.4;
+    }
+
+    .close-button {
+      flex: 0 0 auto;
+      width: 34px;
+      height: 34px;
+      padding: 0;
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      color: var(--ink);
+      background: rgba(255, 255, 255, .06);
+      cursor: pointer;
+    }
+
+    .details {
+      display: grid;
+      grid-template-columns: 70px 1fr;
+      gap: 13px 16px;
+      margin: 24px 0 0;
+      font-size: .92rem;
+      line-height: 1.55;
+    }
+
+    .details dt { color: var(--muted); }
+    .details dd { margin: 0; }
+
+    @media (max-width: 820px) {
+      body { background-attachment: scroll; }
+      .app { padding: 22px 14px calc(24px + env(safe-area-inset-bottom)); }
+      .topbar { align-items: center; }
+      .today-date { font-size: 2.35rem; }
+      .week-control { gap: 2px; }
+      .week-label { min-width: 84px; }
+      .schedule-shell { border-radius: 17px; }
+      .desktop-schedule { display: none; }
+      .mobile-schedule { display: block; }
+
+      .day-tabs {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(40px, 1fr));
+        gap: 3px;
+        padding: 8px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .day-tab {
+        min-width: 0;
+        padding: 8px 2px;
+        border: 0;
+        border-radius: 10px;
+        color: var(--muted);
+        background: transparent;
+        cursor: pointer;
+      }
+
+      .day-tab span {
+        display: block;
+        margin-bottom: 4px;
+        font-size: .68rem;
+      }
+
+      .day-tab strong { font-size: .86rem; }
+
+      .day-tab.active {
+        color: #142043;
+        background: var(--accent);
+      }
+
+      .mobile-list {
+        display: grid;
+        gap: 10px;
+        min-height: 250px;
+        padding: 14px;
+      }
+
+      .mobile-course {
+        position: relative;
+        display: grid;
+        grid-template-columns: 78px 1fr 22px;
+        align-items: center;
+        gap: 13px;
+        width: 100%;
+        padding: 15px;
+        border: 1px solid rgba(255, 255, 255, .13);
+        border-radius: 14px;
+        color: var(--ink);
+        text-align: left;
+        background: rgba(255, 255, 255, .065);
+        cursor: pointer;
+      }
+
+      .mobile-course::before {
+        content: "";
+        position: absolute;
+        width: 3px;
+        height: 34px;
+        margin-left: -16px;
+        border-radius: 4px;
+        background: var(--course-color);
+      }
+
+      .mobile-time {
+        color: var(--muted);
+        font-size: .72rem;
+        line-height: 1.45;
+      }
+
+      .mobile-time strong {
+        display: block;
+        color: var(--ink);
+        font-size: .85rem;
+      }
+
+      .mobile-course-name {
+        display: block;
+        margin-bottom: 4px;
+        font-size: .9rem;
+        line-height: 1.4;
+      }
+
+      .mobile-place { color: var(--muted); font-size: .75rem; }
+      .chevron { color: var(--muted); font-size: 1.25rem; }
+
+      .empty {
+        display: grid;
+        min-height: 220px;
+        place-items: center;
+        color: var(--muted);
+        font-size: .9rem;
+      }
+    }
+
+    @media (max-width: 500px) {
+      .topbar { align-items: flex-start; gap: 12px; }
+      .today-date { font-size: 2rem; }
+      .today-meta { gap: 6px; font-size: .82rem; }
+      .week-control button { width: 32px; height: 34px; }
+      .week-label { min-width: 64px; font-size: .82rem; }
+      .mobile-course { grid-template-columns: 70px 1fr 16px; gap: 10px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div>
+        <h1 class="today-date" id="todayDate"></h1>
+        <p class="today-meta">
+          <span id="todayWeekday"></span><span class="dot"></span><span id="todayWeek"></span>
+        </p>
+      </div>
+      <nav class="week-control" aria-label="切换教学周">
+        <button id="previousWeek" type="button" aria-label="上一周">‹</button>
+        <span class="week-label" id="selectedWeek"></span>
+        <button id="nextWeek" type="button" aria-label="下一周">›</button>
+      </nav>
+    </header>
+
+    <section class="schedule-shell" aria-label="课程表">
+      <div class="desktop-schedule" id="desktopSchedule"></div>
+      <div class="mobile-schedule">
+        <div class="day-tabs" id="dayTabs" role="tablist" aria-label="选择星期"></div>
+        <div class="mobile-list" id="mobileList"></div>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="courseDialog">
+    <div class="dialog-body">
+      <div class="dialog-head">
+        <h2 id="dialogTitle"></h2>
+        <button class="close-button" id="closeDialog" type="button" aria-label="关闭">×</button>
+      </div>
+      <dl class="details">
+        <dt>日期</dt><dd id="dialogDate"></dd>
+        <dt>时间</dt><dd id="dialogTime"></dd>
+        <dt>地点</dt><dd id="dialogPlace"></dd>
+        <dt>周次</dt><dd id="dialogWeeks"></dd>
+      </dl>
+    </div>
+  </dialog>
+
+  <script>
+    const periodTimes = {
+      1: ["08:30", "09:15"], 2: ["09:20", "10:05"],
+      3: ["10:25", "11:10"], 4: ["11:15", "12:00"],
+      5: ["13:30", "14:15"], 6: ["14:20", "15:05"],
+      7: ["15:25", "16:10"], 8: ["16:15", "17:00"],
+      9: ["17:05", "17:50"], 10: ["18:30", "19:15"],
+      11: ["19:20", "20:05"], 12: ["20:15", "21:00"],
+      13: ["21:05", "21:50"]
+    };
+
+    const range = (start, end) => Array.from({ length: end - start + 1 }, (_, i) => start + i);
+    const courseColors = ["#4265a8", "#775b99", "#3e7a87", "#9a5b6e", "#536f9f", "#66805a", "#8c684b", "#5660a2"];
+    const courses = [
+      { name: "量子场论", color: 0, sessions: [
+        { day: 1, start: 3, end: 4, place: "教一楼306", weeks: range(2, 20) },
+        { day: 5, start: 3, end: 4, place: "教一楼306", weeks: range(2, 20) }
+      ]},
+      { name: "新时代中国特色社会主义理论与实践", color: 1, sessions: [
+        { day: 4, start: 10, end: 13, place: "教一楼207", weeks: range(11, 18) }
+      ]},
+      { name: "学术道德与学术写作规范-分论", color: 2, sessions: [
+        { day: 1, start: 10, end: 11, place: "教一楼002", weeks: range(2, 7) }
+      ]},
+      { name: "群论", color: 3, sessions: [
+        { day: 2, start: 5, end: 6, place: "教一楼108", weeks: [2, 3, 4, 5, ...range(7, 20)] },
+        { day: 4, start: 5, end: 6, place: "教一楼108", weeks: range(2, 20) },
+        { day: 7, start: 5, end: 6, place: "教一楼108", weeks: [3] }
+      ]},
+      { name: "非平衡统计物理（H）", color: 4, sessions: [
+        { day: 2, start: 7, end: 8, place: "教三楼504", weeks: [1, 2, 3, 5, ...range(7, 17)] },
+        { day: 4, start: 7, end: 8, place: "教三楼504", weeks: [1, 2, 3, ...range(6, 17)] }
+      ]},
+      { name: "自然辩证法概论", color: 5, sessions: [
+        { day: 2, start: 10, end: 13, place: "教二楼101", weeks: [2, 3, 4, 5, ...range(7, 10)] },
+        { day: 7, start: 10, end: 13, place: "教二楼101", weeks: [3] }
+      ]},
+      { name: "学术道德与学术写作规范-通论", color: 6, sessions: [
+        { day: 3, start: 3, end: 4, place: "教一楼101", weeks: range(13, 17) }
+      ]},
+      { name: "广义相对论", color: 7, sessions: [
+        { day: 3, start: 5, end: 7, place: "教一楼404", weeks: [2, 3, 4, 5, ...range(7, 20)] },
+        { day: 6, start: 5, end: 7, place: "教一楼404", weeks: [6] }
+      ]}
+    ];
+
+    const weekdays = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
+    const semesterStart = new Date(2026, 7, 31);
+    const today = new Date();
+    today.setHours(12, 0, 0, 0);
+
+    function mondayOf(date) {
+      const result = new Date(date);
+      const day = result.getDay() || 7;
+      result.setDate(result.getDate() - day + 1);
+      result.setHours(12, 0, 0, 0);
+      return result;
+    }
+
+    function weekNumber(date) {
+      return Math.floor((mondayOf(date) - semesterStart) / 604800000) + 1;
+    }
+
+    function dateFor(week, day) {
+      const date = new Date(semesterStart);
+      date.setDate(date.getDate() + (week - 1) * 7 + day - 1);
+      return date;
+    }
+
+    function formatDate(date, withYear = false) {
+      const options = withYear
+        ? { year: "numeric", month: "long", day: "numeric" }
+        : { month: "numeric", day: "numeric" };
+      return new Intl.DateTimeFormat("zh-CN", options).format(date);
+    }
+
+    function compactWeeks(weeks) {
+      const groups = [];
+      let start = weeks[0], previous = weeks[0];
+      for (let i = 1; i <= weeks.length; i++) {
+        const current = weeks[i];
+        if (current === previous + 1) { previous = current; continue; }
+        groups.push(start === previous ? `${start}` : `${start}–${previous}`);
+        start = previous = current;
+      }
+      return `第 ${groups.join("、")} 周`;
+    }
+
+    let selectedWeek = weekNumber(today);
+    let selectedDay = today.getDay() || 7;
+    const desktopSchedule = document.querySelector("#desktopSchedule");
+    const dayTabs = document.querySelector("#dayTabs");
+    const mobileList = document.querySelector("#mobileList");
+    const dialog = document.querySelector("#courseDialog");
+
+    function sessionsFor(day) {
+      return courses.flatMap(course => course.sessions
+        .filter(session => session.day === day && session.weeks.includes(selectedWeek))
+        .map(session => ({ course, session })))
+        .sort((a, b) => a.session.start - b.session.start);
+    }
+
+    function openDetails(course, session) {
+      const date = dateFor(selectedWeek, session.day);
+      document.querySelector("#dialogTitle").textContent = course.name;
+      document.querySelector("#dialogDate").textContent = `${formatDate(date, true)} ${weekdays[session.day - 1]}`;
+      document.querySelector("#dialogTime").textContent = `${periodTimes[session.start][0]}–${periodTimes[session.end][1]}（第${session.start}–${session.end}节）`;
+      document.querySelector("#dialogPlace").textContent = session.place;
+      document.querySelector("#dialogWeeks").textContent = compactWeeks(session.weeks);
+      dialog.showModal();
+    }
+
+    function courseButton(course, session, mobile = false) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.style.setProperty("--course-color", courseColors[course.color]);
+      button.setAttribute("aria-label", `${course.name}，${session.place}，查看详情`);
+      button.addEventListener("click", () => openDetails(course, session));
+
+      if (mobile) {
+        button.className = "mobile-course";
+        button.innerHTML = `
+          <span class="mobile-time"><strong>${periodTimes[session.start][0]}</strong>${periodTimes[session.end][1]}</span>
+          <span><strong class="mobile-course-name">${course.name}</strong><span class="mobile-place">${session.place} · 第${session.start}–${session.end}节</span></span>
+          <span class="chevron" aria-hidden="true">›</span>`;
+      } else {
+        button.className = "course-card";
+        button.style.top = `calc((${session.start} - 1) * var(--cell-height) + 4px)`;
+        button.style.height = `calc((${session.end} - ${session.start} + 1) * var(--cell-height) - 8px)`;
+        button.innerHTML = `<strong>${course.name}</strong><small>${session.place}</small>`;
+      }
+      return button;
+    }
+
+    function renderDesktop() {
+      desktopSchedule.replaceChildren();
+      const corner = document.createElement("div");
+      corner.className = "corner";
+      desktopSchedule.append(corner);
+
+      for (let day = 1; day <= 7; day++) {
+        const date = dateFor(selectedWeek, day);
+        const head = document.createElement("div");
+        head.className = "day-head";
+        if (date.toDateString() === today.toDateString()) head.classList.add("is-today");
+        head.innerHTML = `<strong>${weekdays[day - 1]}</strong><span>${date.getDate()}</span>`;
+        desktopSchedule.append(head);
+      }
+
+      const times = document.createElement("div");
+      times.className = "time-column";
+      for (let period = 1; period <= 13; period++) {
+        const slot = document.createElement("div");
+        slot.className = "time-slot";
+        slot.innerHTML = `<b>${period}</b>${periodTimes[period][0]}`;
+        times.append(slot);
+      }
+      desktopSchedule.append(times);
+
+      for (let day = 1; day <= 7; day++) {
+        const column = document.createElement("div");
+        column.className = "day-column";
+        sessionsFor(day).forEach(({ course, session }) => column.append(courseButton(course, session)));
+        desktopSchedule.append(column);
+      }
+    }
+
+    function renderMobile() {
+      dayTabs.replaceChildren();
+      for (let day = 1; day <= 7; day++) {
+        const date = dateFor(selectedWeek, day);
+        const tab = document.createElement("button");
+        tab.type = "button";
+        tab.className = `day-tab${day === selectedDay ? " active" : ""}`;
+        tab.setAttribute("role", "tab");
+        tab.setAttribute("aria-selected", day === selectedDay);
+        tab.innerHTML = `<span>${weekdays[day - 1].slice(1)}</span><strong>${date.getDate()}</strong>`;
+        tab.addEventListener("click", () => { selectedDay = day; renderMobile(); });
+        dayTabs.append(tab);
+      }
+
+      mobileList.replaceChildren();
+      const sessions = sessionsFor(selectedDay);
+      if (!sessions.length) {
+        const empty = document.createElement("div");
+        empty.className = "empty";
+        empty.textContent = "当天没有课程";
+        mobileList.append(empty);
+      } else {
+        sessions.forEach(({ course, session }) => mobileList.append(courseButton(course, session, true)));
+      }
+    }
+
+    function render() {
+      document.querySelector("#selectedWeek").textContent = `第 ${selectedWeek} 周`;
+      renderDesktop();
+      renderMobile();
+    }
+
+    document.querySelector("#todayDate").textContent = formatDate(today);
+    document.querySelector("#todayWeekday").textContent = weekdays[(today.getDay() || 7) - 1];
+    document.querySelector("#todayWeek").textContent = `第 ${weekNumber(today)} 周`;
+    document.querySelector("#previousWeek").addEventListener("click", () => { selectedWeek--; render(); });
+    document.querySelector("#nextWeek").addEventListener("click", () => { selectedWeek++; render(); });
+    document.querySelector("#closeDialog").addEventListener("click", () => dialog.close());
+    dialog.addEventListener("click", event => {
+      const rect = dialog.getBoundingClientRect();
+      if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) dialog.close();
+    });
+
+    render();
+  </script>
+</body>
+</html>
