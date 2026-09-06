@@ -11,7 +11,7 @@
       --ink: #f7f9ff;
       --muted: #b8c2df;
       --line: rgba(255, 255, 255, .13);
-      --panel: rgba(12, 20, 48, .2);
+      --panel: transparent;
       --panel-strong: rgba(14, 23, 54, .92);
       --accent: #9ebcff;
       --cell-height: 50px;
@@ -121,7 +121,6 @@
       border-radius: 20px;
       background: var(--panel);
       box-shadow: 0 24px 70px rgba(0, 0, 0, .25);
-      backdrop-filter: blur(18px) saturate(115%);
     }
 
     .desktop-schedule {
@@ -137,8 +136,7 @@
       z-index: 4;
       min-height: 67px;
       border-bottom: 1px solid var(--line);
-      background: rgba(12, 20, 48, .2);
-      backdrop-filter: blur(16px);
+      background: transparent;
     }
 
     .day-head {
@@ -157,18 +155,12 @@
       font-weight: 650;
     }
 
-    .day-head.is-today strong { color: #dce7ff; }
-
-    .day-head.is-today span {
-      display: grid;
-      width: 26px;
-      height: 26px;
-      place-items: center;
-      border-radius: 50%;
+    .day-head.is-today {
       color: #152043;
       background: var(--accent);
-      font-weight: 750;
     }
+
+    .day-head.is-today strong { color: inherit; }
 
     .time-column { grid-column: 1; }
 
@@ -341,6 +333,11 @@
       .day-tab strong { font-size: .86rem; }
 
       .day-tab.active {
+        color: var(--ink);
+        background: rgba(255, 255, 255, .12);
+      }
+
+      .day-tab.is-today {
         color: #142043;
         background: var(--accent);
       }
@@ -364,7 +361,7 @@
         border-radius: 14px;
         color: var(--ink);
         text-align: left;
-        background: rgba(255, 255, 255, .065);
+        background: var(--course-color);
         cursor: pointer;
       }
 
@@ -471,7 +468,7 @@
     };
 
     const range = (start, end) => Array.from({ length: end - start + 1 }, (_, i) => start + i);
-    const courseColors = ["#4265a8", "#775b99", "#3e7a87", "#9a5b6e", "#536f9f", "#66805a", "#8c684b", "#5660a2"];
+    const courseColors = ["rgba(66, 101, 168, .2)", "rgba(119, 91, 153, .2)", "rgba(62, 122, 135, .2)", "rgba(154, 91, 110, .2)", "rgba(83, 111, 159, .2)", "rgba(102, 128, 90, .2)", "rgba(140, 104, 75, .2)", "rgba(86, 96, 162, .2)"];
     const courses = [
       { name: "量子场论", color: 0, sessions: [
         { day: 1, start: 3, end: 4, place: "教一楼306", weeks: range(2, 20) },
@@ -604,7 +601,7 @@
         const head = document.createElement("div");
         head.className = "day-head";
         if (date.toDateString() === today.toDateString()) head.classList.add("is-today");
-        head.innerHTML = `<strong>${weekdays[day - 1]}</strong><span>${date.getDate()}</span>`;
+        head.innerHTML = `<strong>${weekdays[day - 1]}</strong><span>${date.getMonth() + 1}/${date.getDate()}</span>`;
         desktopSchedule.append(head);
       }
 
@@ -632,10 +629,11 @@
         const date = dateFor(selectedWeek, day);
         const tab = document.createElement("button");
         tab.type = "button";
-        tab.className = `day-tab${day === selectedDay ? " active" : ""}`;
+        const isToday = date.toDateString() === today.toDateString();
+        tab.className = `day-tab${day === selectedDay ? " active" : ""}${isToday ? " is-today" : ""}`;
         tab.setAttribute("role", "tab");
         tab.setAttribute("aria-selected", day === selectedDay);
-        tab.innerHTML = `<span>${weekdays[day - 1].slice(1)}</span><strong>${date.getDate()}</strong>`;
+        tab.innerHTML = `<span>${weekdays[day - 1].slice(1)}</span><strong>${date.getMonth() + 1}/${date.getDate()}</strong>`;
         tab.addEventListener("click", () => { selectedDay = day; renderMobile(); });
         dayTabs.append(tab);
       }
