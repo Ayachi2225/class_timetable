@@ -480,7 +480,7 @@
     };
 
     const range = (start, end) => Array.from({ length: end - start + 1 }, (_, i) => start + i);
-    const courseColors = ["66, 101, 168", "119, 91, 153", "62, 122, 135", "154, 91, 110", "83, 111, 159", "102, 128, 90", "140, 104, 75", "86, 96, 162"];
+    const courseColors = ["66, 101, 168", "119, 91, 153", "62, 122, 135", "154, 91, 110", "83, 111, 159", "102, 128, 90", "140, 104, 75", "86, 96, 162", "155, 112, 73"];
     const courses = [
       { name: "量子场论", color: 0, sessions: [
         { day: 1, start: 3, end: 4, place: "教一楼306", weeks: range(2, 20) },
@@ -497,9 +497,13 @@
         { day: 4, start: 5, end: 6, place: "教一楼108", weeks: range(2, 20) },
         { day: 7, start: 5, end: 6, place: "教一楼108", weeks: [3] }
       ]},
-      { name: "非平衡统计物理（H）", color: 4, sessions: [
-        { day: 2, start: 7, end: 8, place: "教三楼504", weeks: [1, 2, 3, 5, ...range(7, 17)] },
-        { day: 4, start: 7, end: 8, place: "教三楼504", weeks: [1, 2, 3, ...range(6, 17)] }
+      { name: "高等量子力学", color: 4, sessions: [
+        { day: 2, start: 7, end: 8, place: "教一楼108", weeks: [2, 3, 4, 5, ...range(7, 20)] },
+        { day: 4, start: 7, end: 8, place: "教一楼108", weeks: range(2, 20) },
+        { day: 7, start: 7, end: 8, place: "教一楼108", weeks: [3] }
+      ]},
+      { name: "中国民居建筑艺术概论", color: 8, sessions: [
+        { day: 5, start: 5, end: 7, place: "教一楼208", weeks: range(3, 14) }
       ]},
       { name: "自然辩证法概论", color: 5, sessions: [
         { day: 2, start: 10, end: 13, place: "教二楼101", weeks: [2, 3, 4, 5, ...range(7, 10)] },
